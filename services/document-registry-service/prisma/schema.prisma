@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DocumentStatus {
+  ACTIVE
+  LOST
+  REVOKED
+  REPLACED
+  EXPIRED
+}
+
+enum InstitutionStatus {
+  APPROVED
+  SUSPENDED
+  PENDING
+}
+
+model Institution {
+  id         String            @id
+  name       String
+  apiKeyHash String            @unique
+  status     InstitutionStatus @default(PENDING)
+  documents  Document[]
+}
+
+model Document {
+  id               String          @id @default(uuid())
+  documentType     String
+  documentNumber   String
+  holderName       String
+  issuedById       String
+  issueDate        DateTime
+  expiryDate       DateTime?
+  status           DocumentStatus  @default(ACTIVE)
+  statusChangedAt  DateTime        @default(now())
+  qrToken          String?         @unique
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  issuedBy         Institution     @relation(fields: [issuedById], references: [id])
+  history          DocumentHistory[]
+
+  @@unique([documentType, documentNumber])
+  @@index([issuedById, createdAt])
+}
+
+model DocumentHistory {
+  id                String   @id @default(cuid())
+  documentId        String
+  eventType         String
+  previousTokenHash String?
+  changedBy         String
+  createdAt         DateTime @default(now())
+  document          Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, createdAt])
+}

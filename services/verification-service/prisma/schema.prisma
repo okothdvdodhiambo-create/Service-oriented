@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CallerType {
+  PUBLIC
+  INSTITUTION
+  ADMIN
+}
+
+enum VerificationMethod {
+  NUMBER
+  QR
+}
+
+enum VerificationResult {
+  GENUINE
+  NOT_FOUND
+  REPORTED_LOST
+  REVOKED
+  REPLACED
+  EXPIRED
+  INVALID_TOKEN
+}
+
+enum InstitutionStatus {
+  APPROVED
+  SUSPENDED
+  PENDING
+}
+
+model Institution {
+  id          String             @id
+  name        String
+  apiKeyHash  String             @unique
+  status      InstitutionStatus  @default(PENDING)
+  logs        VerificationLog[]
+  users       AuthUser[]
+  createdAt   DateTime           @default(now())
+}
+
+model AuthUser {
+  id             String      @id @default(cuid())
+  email          String      @unique
+  passwordHash   String
+  role           CallerType  @default(INSTITUTION)
+  institutionId  String?
+  institution    Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  createdAt      DateTime    @default(now())
+}
+
+model VerificationLog {
+  id             String             @id @default(cuid())
+  callerType     CallerType
+  institutionId  String?
+  userId         String?
+  method         VerificationMethod
+  documentType   String?
+  numberHash     String?
+  documentId     String?
+  result         VerificationResult
+  ipHash         String
+  userAgent      String?
+  correlationId  String
+  latencyMs      Int
+  cacheHit       Boolean            @default(false)
+  createdAt      DateTime           @default(now())
+  institution    Institution?       @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId, createdAt])
+  @@index([createdAt])
+  @@index([result, createdAt])
+}
+
+model DailyStat {
+  date       DateTime
+  result     VerificationResult
+  method     VerificationMethod
+  callerType CallerType
+  count      Int                @default(0)
+
+  @@id([date, result, method, callerType])
+  @@index([date])
+}

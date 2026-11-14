@@ -1,0 +1,297 @@
+openapi: 3.1.0
+info:
+  title: Service Oriente Verification API
+  version: 1.0.0
+  description: Public QR checks and authenticated document verification.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+  - apiKeyAuth: []
+paths:
+  /verify/public/{qrToken}:
+    get:
+      security: []
+      summary: Verify a QR token with limited public details
+      parameters:
+        - in: path
+          name: qrToken
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: A limited, privacy-preserving result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicResult" }
+              examples:
+                genuine:
+                  value: { result: GENUINE, documentType: CERTIFICATE, issuedByName: Example University, issueYear: 2025, checkedAt: "2026-01-20T09:00:00Z", maskedHolderName: "J*** O*****" }
+                reportedLost:
+                  value: { result: REPORTED_LOST, documentType: CERTIFICATE, issuedByName: Example University, issueYear: 2025, checkedAt: "2026-01-20T09:00:00Z", maskedHolderName: "J*** O*****" }
+                revoked:
+                  value: { result: REVOKED, documentType: CERTIFICATE, issuedByName: Example University, issueYear: 2025, checkedAt: "2026-01-20T09:00:00Z", maskedHolderName: "J*** O*****" }
+                replaced:
+                  value: { result: REPLACED, documentType: CERTIFICATE, issuedByName: Example University, issueYear: 2025, checkedAt: "2026-01-20T09:00:00Z", maskedHolderName: "J*** O*****" }
+                expired:
+                  value: { result: EXPIRED, documentType: CERTIFICATE, issuedByName: Example University, issueYear: 2025, checkedAt: "2026-01-20T09:00:00Z", maskedHolderName: "J*** O*****" }
+                notFound:
+                  value: { result: NOT_FOUND, documentType: null, issuedByName: null, issueYear: null, checkedAt: "2026-01-20T09:00:00Z", maskedHolderName: null }
+                invalidToken:
+                  value: { result: INVALID_TOKEN, documentType: null, issuedByName: null, issueYear: null, checkedAt: "2026-01-20T09:00:00Z", maskedHolderName: null }
+        "429":
+          description: Public rate limit exceeded
+          headers:
+            Retry-After: { schema: { type: integer } }
+          content:
+            application/json:
+              example: { error: RATE_LIMITED, message: Too many verification requests }
+        "503":
+          description: Registry unavailable; no NOT_FOUND result is inferred
+          content:
+            application/json:
+              example: { error: SERVICE_UNAVAILABLE, message: "Verification is temporarily unavailable; please retry" }
+  /verify/number:
+    post:
+      summary: Verify a document number (preferred; avoids URL exposure)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [documentType, documentNumber]
+              properties:
+                documentType: { type: string }
+                documentNumber: { type: string }
+            example: { documentType: CERTIFICATE, documentNumber: CERT-2025-0001 }
+      responses:
+        "200":
+          description: Full verification response
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FullResult" }
+              examples:
+                genuine: { value: { result: GENUINE, documentType: CERTIFICATE, maskedNumber: "********0001", holderName: Jane Otieno, issuedByName: Example University, issueDate: "2025-06-15T00:00:00Z", expiryDate: null, status: ACTIVE, statusChangedAt: "2025-06-15T00:00:00Z", checkedAt: "2026-01-20T09:00:00Z", verificationId: 7ed7f253-314a-4a64-a209-5f2b8c5c169d } }
+                lost: { value: { result: REPORTED_LOST, documentType: CERTIFICATE, maskedNumber: "********0001", holderName: Jane Otieno, issuedByName: Example University, issueDate: "2025-06-15T00:00:00Z", expiryDate: null, status: LOST, statusChangedAt: "2026-01-18T00:00:00Z", checkedAt: "2026-01-20T09:00:00Z", verificationId: 7ed7f253-314a-4a64-a209-5f2b8c5c169d } }
+                notFound: { value: { result: NOT_FOUND, documentType: null, issuedByName: null, issueDate: null, expiryDate: null, status: null, statusChangedAt: null, checkedAt: "2026-01-20T09:00:00Z", verificationId: 7ed7f253-314a-4a64-a209-5f2b8c5c169d } }
+                revoked: { value: { result: REVOKED, documentType: CERTIFICATE, maskedNumber: "********0001", holderName: Jane Otieno, issuedByName: Example University, issueDate: "2025-06-15T00:00:00Z", expiryDate: null, status: REVOKED, statusChangedAt: "2026-01-18T00:00:00Z", checkedAt: "2026-01-20T09:00:00Z", verificationId: 7ed7f253-314a-4a64-a209-5f2b8c5c169d } }
+                replaced: { value: { result: REPLACED, documentType: CERTIFICATE, maskedNumber: "********0001", holderName: Jane Otieno, issuedByName: Example University, issueDate: "2025-06-15T00:00:00Z", expiryDate: null, status: REPLACED, statusChangedAt: "2026-01-18T00:00:00Z", checkedAt: "2026-01-20T09:00:00Z", verificationId: 7ed7f253-314a-4a64-a209-5f2b8c5c169d } }
+                expired: { value: { result: EXPIRED, documentType: CERTIFICATE, maskedNumber: "********0001", holderName: Jane Otieno, issuedByName: Example University, issueDate: "2025-06-15T00:00:00Z", expiryDate: "2025-12-31T00:00:00Z", status: EXPIRED, statusChangedAt: "2025-12-31T00:00:00Z", checkedAt: "2026-01-20T09:00:00Z", verificationId: 7ed7f253-314a-4a64-a209-5f2b8c5c169d } }
+                invalidToken: { value: { result: INVALID_TOKEN, documentType: null, issuedByName: null, issueDate: null, expiryDate: null, status: null, statusChangedAt: null, checkedAt: "2026-01-20T09:00:00Z", verificationId: 7ed7f253-314a-4a64-a209-5f2b8c5c169d } }
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              example: { error: INVALID_REQUEST, message: "A document type and number are required" }
+        "401":
+          description: Missing, invalid, or suspended credentials
+          content:
+            application/json:
+              example: { error: UNAUTHORIZED, message: "Authentication required" }
+        "403":
+          description: Authenticated caller does not have permission
+          content:
+            application/json:
+              example: { error: FORBIDDEN, message: "You are not allowed to perform this operation" }
+        "429":
+          description: Authenticated request limit exceeded
+          headers:
+            Retry-After: { schema: { type: integer } }
+          content:
+            application/json:
+              example: { error: RATE_LIMITED }
+        "503":
+          description: Registry unavailable
+          content:
+            application/json:
+              example: { error: SERVICE_UNAVAILABLE, message: "Verification is temporarily unavailable; please retry" }
+    get:
+      summary: Legacy GET verification (prefer POST to keep numbers out of URLs)
+      parameters:
+        - in: query
+          name: documentType
+          required: true
+          schema: { type: string }
+        - in: query
+          name: documentNumber
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Full verification response, same schema as POST }
+        "401": { description: Authentication required }
+  /verify/qr:
+    post:
+      summary: Verify a QR token with institution-level detail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [qrToken]
+              properties:
+                qrToken: { type: string }
+      responses:
+        "200":
+          description: Full verification result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FullResult" }
+              examples:
+                invalid: { value: { result: INVALID_TOKEN, documentType: null, issuedByName: null, checkedAt: "2026-01-20T09:00:00Z", verificationId: 7ed7f253-314a-4a64-a209-5f2b8c5c169d } }
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              example: { error: UNAUTHORIZED, message: "Authentication required" }
+        "503":
+          description: Registry unavailable
+          content:
+            application/json:
+              example: { error: SERVICE_UNAVAILABLE, message: "Verification is temporarily unavailable; please retry" }
+  /verify/batch:
+    post:
+      summary: Verify up to 50 numbers per request
+      description: Employer clients with up to 500 input rows should send sequential batches of 50.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 50
+                  items:
+                    type: object
+                    required: [documentType, documentNumber]
+                    properties:
+                      documentType: { type: string }
+                      documentNumber: { type: string }
+      responses:
+        "200":
+          description: Per-item verification results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items: { $ref: "#/components/schemas/FullResult" }
+              examples:
+                mixed:
+                  value:
+                    results:
+                      - { result: GENUINE, documentType: CERTIFICATE, maskedNumber: "********0001", holderName: Jane Otieno, issuedByName: Example University, checkedAt: "2026-01-20T09:00:00Z", verificationId: 7ed7f253-314a-4a64-a209-5f2b8c5c169d }
+                      - { result: NOT_FOUND, documentType: null, issuedByName: null, checkedAt: "2026-01-20T09:00:00Z", verificationId: b5e65854-4bdb-40d1-a683-8b5a74a70b34 }
+        "400":
+          description: Invalid batch shape or item count
+          content:
+            application/json:
+              example: { error: INVALID_REQUEST, message: "Batch must contain 1 to 50 valid items" }
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              example: { error: UNAUTHORIZED, message: "Authentication required" }
+        "403":
+          description: Institution role required
+          content:
+            application/json:
+              example: { error: FORBIDDEN, message: "You are not allowed to perform this operation" }
+        "429":
+          description: Rate limit exceeded
+          headers:
+            Retry-After: { schema: { type: integer } }
+          content:
+            application/json:
+              example: { error: RATE_LIMITED }
+  /verify/history:
+    get:
+      summary: Read verification history
+      parameters:
+        - in: query
+          name: result
+          schema: { $ref: "#/components/schemas/Result" }
+        - in: query
+          name: method
+          schema: { type: string, enum: [NUMBER, QR] }
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100 }
+      responses:
+        "200": { description: Logs scoped to the caller's institution; document numbers are never returned }
+        "401": { description: Authentication required }
+  /verify/stats:
+    get:
+      summary: Admin verification statistics
+      responses:
+        "200": { description: Counts by result, method, caller type, day, institution, and average latency }
+        "403": { description: Admin role required }
+  /verify/stats/mine:
+    get:
+      summary: Institution verification statistics
+      responses:
+        "200": { description: Counts scoped to the authenticated institution }
+        "403": { description: Institution role required }
+  /verify/{verificationId}/receipt:
+    get:
+      summary: Printable verification receipt
+      parameters:
+        - in: path
+          name: verificationId
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Printable HTML receipt, no raw document number }
+        "404": { description: Receipt not found }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    Result:
+      type: string
+      enum: [GENUINE, NOT_FOUND, REPORTED_LOST, REVOKED, REPLACED, EXPIRED, INVALID_TOKEN]
+    PublicResult:
+      type: object
+      required: [result, documentType, issuedByName, checkedAt]
+      properties:
+        result: { $ref: "#/components/schemas/Result" }
+        documentType: { type: [string, "null"] }
+        issuedByName: { type: [string, "null"] }
+        issueYear: { type: [integer, "null"] }
+        checkedAt: { type: string, format: date-time }
+        maskedHolderName: { type: [string, "null"] }
+    FullResult:
+      allOf:
+        - $ref: "#/components/schemas/PublicResult"
+        - type: object
+          properties:
+            holderName: { type: string }
+            maskedNumber: { type: string }
+            issueDate: { type: [string, "null"], format: date-time }
+            expiryDate: { type: [string, "null"], format: date-time }
+            status: { type: [string, "null"], enum: [ACTIVE, LOST, REVOKED, REPLACED, EXPIRED, null] }
+            statusChangedAt: { type: [string, "null"], format: date-time }
+            verificationId: { type: string }

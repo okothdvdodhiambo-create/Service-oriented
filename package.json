@@ -1,0 +1,24 @@
+{
+  "name": "service-oriente",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "shared",
+    "services/document-registry-service",
+    "services/verification-service",
+    "services/auth-service",
+    "gateway",
+    "web",
+    "demo-clients/employer-hr"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @service-oriente/shared && npm run db:generate --workspace @service-oriente/document-registry-service && npm run db:generate --workspace @service-oriente/verification-service && npm run build --workspace @service-oriente/document-registry-service && npm run build --workspace @service-oriente/verification-service && npm run build --workspace @service-oriente/auth-service && npm run build --workspace @service-oriente/gateway && npm run build --workspace web && npm run build --workspace employer-hr",
+    "test": "npm run build --workspace @service-oriente/shared && npm run db:generate --workspace @service-oriente/document-registry-service && npm run db:generate --workspace @service-oriente/verification-service && npm test --workspace @service-oriente/shared && npm test --workspace @service-oriente/document-registry-service && npm test --workspace @service-oriente/verification-service && npm test --workspace @service-oriente/gateway && npm test --workspace web && npm test --workspace employer-hr",
+    "dev:verification": "npm run dev --workspace @service-oriente/verification-service",
+    "dev:registry": "npm run dev --workspace @service-oriente/document-registry-service",
+    "dev:auth": "npm run dev --workspace @service-oriente/auth-service",
+    "dev:gateway": "npm run dev --workspace @service-oriente/gateway",
+    "dev:web": "npm run dev --workspace web",
+    "dev:employer": "npm run dev --workspace employer-hr"
+  }
+}

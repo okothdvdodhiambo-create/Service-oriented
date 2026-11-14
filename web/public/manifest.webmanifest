@@ -1,0 +1,9 @@
+{
+  "name": "Service Oriente Document Verification",
+  "short_name": "Verify",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f8fa",
+  "theme_color": "#0F766E",
+  "icons": []
+}
